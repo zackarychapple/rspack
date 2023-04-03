@@ -1,6 +1,5 @@
 const {
-	AngularWebpackPlugin,
-	AngularWebpackLoaderPath
+	AngularWebpackPlugin
 } = require('@ngtools/webpack');
 
 
