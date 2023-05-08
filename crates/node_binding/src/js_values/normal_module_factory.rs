@@ -1,5 +1,6 @@
 use rspack_core::{
-  NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs, ResourceData,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryResolveForSchemeArgs, ResourceData,
 };
 
 #[napi(object)]
@@ -12,6 +13,15 @@ pub struct SchemeAndJsResourceData {
 pub struct BeforeResolveData {
   pub request: String,
   pub context: Option<String>,
+}
+
+#[napi(object)]
+pub struct AfterResolveData {
+  pub request: String,
+  pub context: Option<String>,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
 }
 
 #[napi(object)]
@@ -51,6 +61,30 @@ impl From<NormalModuleBeforeResolveArgs<'_>> for BeforeResolveData {
     Self {
       context: value.context.to_owned(),
       request: value.request.to_string(),
+    }
+  }
+}
+
+impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
+  fn from(value: NormalModuleAfterResolveArgs) -> Self {
+    Self {
+      context: value.context.to_owned(),
+      request: value.request.to_string(),
+      file_dependencies: value
+        .file_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string()),
+      context_dependencies: value
+        .context_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string()),
+      missing_dependencies: value
+        .context_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string()),
     }
   }
 }
