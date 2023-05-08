@@ -144,6 +144,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     args: &NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    if self.is_hook_disabled(&Hook::BeforeResolve) {
+      return Ok(None);
+    }
     let res = self
       .before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
@@ -158,6 +161,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     args: &NormalModuleAfterResolveArgs,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    if self.is_hook_disabled(&Hook::AfterResolve) {
+      return Ok(None);
+    }
     let res = self
       .after_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
