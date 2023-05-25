@@ -1,6 +1,6 @@
 use async_recursion::async_recursion;
 use rspack_error::{internal_error, Result};
-use rspack_loader_runner::ResourceData;
+use rspack_loader_runner::{ResourceData, Scheme};
 
 use crate::{DependencyCategory, ModuleRule};
 
@@ -14,9 +14,12 @@ pub async fn module_rule_matcher<'a>(
   if module_rule.test.is_none()
     && module_rule.resource.is_none()
     && module_rule.resource_query.is_none()
+    && module_rule.resource_fragment.is_none()
     && module_rule.include.is_none()
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
+    && module_rule.scheme.is_none()
+    && module_rule.mimetype.is_none()
     && module_rule.dependency.is_none()
     && module_rule.description_data.is_none()
     && module_rule.one_of.is_none()
@@ -66,6 +69,39 @@ pub async fn module_rule_matcher_inner<'a>(
     }
   }
 
+  if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
+    if let Some(resource_fragment) = &resource_data.resource_fragment {
+      if !resource_fragment_condition
+        .try_match(resource_fragment)
+        .await?
+      {
+        return Ok(None);
+      }
+    } else {
+      return Ok(None);
+    }
+  }
+
+  if let Some(mimetype_condition) = &module_rule.mimetype {
+    if let Some(mimetype) = &resource_data.mimetype {
+      if !mimetype_condition.try_match(mimetype).await? {
+        return Ok(None);
+      }
+    } else {
+      return Ok(None);
+    }
+  }
+
+  if let Some(scheme_condition) = &module_rule.scheme {
+    let scheme = resource_data.get_scheme();
+    if scheme == &Scheme::None {
+      return Ok(None);
+    }
+    if !scheme_condition.try_match(&scheme.to_string()).await? {
+      return Ok(None);
+    }
+  }
+
   if let Some(issuer_rule) = &module_rule.issuer
     && let Some(issuer) = issuer
     && !issuer_rule.try_match(issuer).await? {
@@ -77,16 +113,24 @@ pub async fn module_rule_matcher_inner<'a>(
     return Ok(None);
   }
 
-  if let Some(description_data) = &module_rule.description_data
-    && let Some(resource_description) = &resource_data.resource_description {
-    for (k, matcher) in description_data {
-      if let Some(v) = resource_description.data().raw().get(k).and_then(|v| v.as_str()) {
-        if !matcher.try_match(v).await? {
+  if let Some(description_data) = &module_rule.description_data {
+    if let Some(resource_description) = &resource_data.resource_description {
+      for (k, matcher) in description_data {
+        if let Some(v) = resource_description
+          .data()
+          .raw()
+          .get(k)
+          .and_then(|v| v.as_str())
+        {
+          if !matcher.try_match(v).await? {
+            return Ok(None);
+          }
+        } else {
           return Ok(None);
         }
-      } else {
-        return Ok(None);
       }
+    } else {
+      return Ok(None);
     }
   }
 

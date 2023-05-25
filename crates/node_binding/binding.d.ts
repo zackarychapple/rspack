@@ -20,7 +20,7 @@ export class JsCompilation {
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   get entrypoints(): Record<string, JsChunkGroup>
-  get hash(): string
+  get hash(): string | null
   getFileDependencies(): Array<string>
   getContextDependencies(): Array<string>
   getMissingDependencies(): Array<string>
@@ -183,6 +183,7 @@ export interface JsHooks {
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
+  afterCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
@@ -233,6 +234,16 @@ export interface JsModule {
   originalSource?: JsCompatSource
   resource: string
   moduleIdentifier: string
+}
+
+export interface JsResolveForSchemeInput {
+  resourceData: JsResourceData
+  scheme: string
+}
+
+export interface JsResolveForSchemeResult {
+  resourceData: JsResourceData
+  stop: boolean
 }
 
 export interface JsResourceData {
@@ -346,8 +357,6 @@ export interface NodeFS {
 
 export interface PathData {
   filename?: string
-  query?: string
-  fragment?: string
   hash?: string
   contentHash?: string
   runtime?: string
@@ -596,6 +605,7 @@ export interface RawModuleRule {
   resource?: RawRuleSetCondition
   /** A condition matcher against the resource query. */
   resourceQuery?: RawRuleSetCondition
+  resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: Array<RawModuleRuleUse>
@@ -605,6 +615,8 @@ export interface RawModuleRule {
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
+  scheme?: RawRuleSetCondition
+  mimetype?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
@@ -707,6 +719,10 @@ export interface RawOutputOptions {
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string
+  hashFunction: string
+  hashDigest: string
+  hashDigestLength: number
+  hashSalt?: string
 }
 
 export interface RawParserOptions {
@@ -792,6 +808,7 @@ export interface RawResolveOptions {
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
   exportsFields?: Array<string>
+  extensionAlias?: Record<string, Array<string>>
 }
 
 export interface RawRuleSetCondition {
@@ -849,11 +866,6 @@ export interface RawStyleConfig {
 
 export interface RawTrustedTypes {
   policyName?: string
-}
-
-export interface SchemeAndJsResourceData {
-  resourceData: JsResourceData
-  scheme: string
 }
 
 export interface ThreadsafeNodeFS {

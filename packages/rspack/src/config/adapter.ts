@@ -153,6 +153,10 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
+		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
+			string,
+			Array<string>
+		>,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
@@ -197,7 +201,11 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
 		webassemblyModuleFilename: output.webassemblyModuleFilename!,
 		trustedTypes: output.trustedTypes!,
-		sourceMapFilename: output.sourceMapFilename!
+		sourceMapFilename: output.sourceMapFilename!,
+		hashFunction: output.hashFunction!,
+		hashDigest: output.hashDigest!,
+		hashDigestLength: output.hashDigestLength!,
+		hashSalt: output.hashSalt!
 	};
 }
 
@@ -278,6 +286,17 @@ const getRawModuleRule = (
 	rule: RuleSetRule,
 	options: ComposeJsUseOptions
 ): RawModuleRule => {
+	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
+	// See: https://webpack.js.org/configuration/module/#ruleloader
+	if (rule.loader) {
+		rule.use = [
+			{
+				loader: rule.loader,
+				options: rule.options
+			}
+		];
+	}
+
 	return {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
@@ -298,6 +317,11 @@ const getRawModuleRule = (
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)
 			: undefined,
+		resourceFragment: rule.resourceFragment
+			? getRawRuleSetCondition(rule.resourceFragment)
+			: undefined,
+		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
+		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
 		use: createRawModuleRuleUses(rule.use ?? [], options),
 		type: rule.type,

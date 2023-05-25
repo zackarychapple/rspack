@@ -1,6 +1,7 @@
 use std::{fmt::Debug, path::Path};
 
 use rspack_error::Result;
+use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
@@ -24,11 +25,11 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
-pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<Option<ResourceData>>;
+pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
 pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
-pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
-pub type PluginChunkHashHookOutput = Result<Option<u64>>;
+pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
+pub type PluginChunkHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -121,9 +122,9 @@ pub trait Plugin: Debug + Send + Sync {
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,
-    _args: &ResourceData,
+    args: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    Ok(None)
+    Ok((args, false))
   }
 
   async fn content_hash(
@@ -137,9 +138,9 @@ pub trait Plugin: Debug + Send + Sync {
   async fn chunk_hash(
     &self,
     _ctx: PluginContext,
-    _args: &ChunkHashArgs<'_>,
+    _args: &mut ChunkHashArgs<'_>,
   ) -> PluginChunkHashHookOutput {
-    Ok(None)
+    Ok(())
   }
 
   async fn render_manifest(
@@ -317,6 +318,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn before_compile(&mut self) -> Result<()> {
+    Ok(())
+  }
+
+  async fn after_compile(&mut self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 

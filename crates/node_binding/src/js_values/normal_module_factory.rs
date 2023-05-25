@@ -1,9 +1,15 @@
 use rspack_core::{NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ResourceData};
 
 #[napi(object)]
-pub struct SchemeAndJsResourceData {
+pub struct JsResolveForSchemeInput {
   pub resource_data: JsResourceData,
   pub scheme: String,
+}
+
+#[napi(object)]
+pub struct JsResolveForSchemeResult {
+  pub resource_data: JsResourceData,
+  pub stop: bool,
 }
 
 #[napi(object)]
@@ -44,7 +50,7 @@ impl From<ResourceData> for JsResourceData {
   }
 }
 
-impl From<ResourceData> for SchemeAndJsResourceData {
+impl From<ResourceData> for JsResolveForSchemeInput {
   fn from(value: ResourceData) -> Self {
     Self {
       scheme: value.get_scheme().to_string(),

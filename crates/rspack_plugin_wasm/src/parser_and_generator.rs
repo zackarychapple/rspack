@@ -12,7 +12,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
-use sugar_path::SugarPath;
 use wasmparser::{Import, Parser, Payload};
 
 use crate::dependency::WasmImportDependency;
@@ -97,6 +96,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         dependencies,
         presentational_dependencies: vec![],
         ast_or_source: source.into(),
+        code_replace_source_dependencies: vec![],
       }
       .with_diagnostic(diagnostic),
     )
@@ -280,16 +280,10 @@ fn render_wasm_name(
   wasm_filename_template: &Filename,
   hash: String,
 ) -> (String, AssetInfo) {
-  let context = &compilation.options.context;
   compilation.get_asset_path_with_info(
     wasm_filename_template,
     PathData::default()
-      .filename(
-        &normal_module
-          .resource_resolved_data()
-          .resource_path
-          .relative(context),
-      )
+      .filename(&normal_module.resource_resolved_data().resource)
       .content_hash(&hash)
       .hash(&hash),
   )
